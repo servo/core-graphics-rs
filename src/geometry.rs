@@ -7,7 +7,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-pub use base::CGFloat;
+use base::CGFloat;
 
 #[repr(C)]
 pub struct CGSize {
