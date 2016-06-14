@@ -19,9 +19,8 @@ pub enum Pixel {
     BGR(u8, u8, u8),
     BGRA(u8, u8, u8, u8),
     ABGR(u8, u8, u8, u8),
-
     YCbCr(u8, u8, u8),    // YUV420P, 
-    // CMYK()
+    // TODO: CMYK, ITUR_709, ITUR_2020, SRGB ....
 }
 
 #[repr(C)]
@@ -102,8 +101,7 @@ impl CGImage {
                         }
                     }
                 },
-                // "kCGColorSpaceGenericGray"
-                // "kCGColorSpaceGenericCMYK"
+                // TODO: kCGColorSpaceGenericGray, kCGColorSpaceGenericCMYK ....
                 _ => {
                     Err("Unsupport")
                 }
@@ -116,36 +114,6 @@ impl CGImage {
             ImageAlphaInfo::from_u32(CGImageGetAlphaInfo(self.0))
         }
     }
-    // pub fn get_pixel(&self, x: usize, y: usize, color_space: ColorSpace ) -> Pixel {
-    //     match color_space {
-    //         ColorSpace::RGB => {
-
-    //         },
-    //         ColorSpace::RGBA => {
-
-    //         },
-    //         ColorSpace::ARGB => {
-
-    //         },
-
-    //         ColorSpace::BGR => {
-
-    //         },
-    //         ColorSpace::BGRA => {
-
-    //         },
-    //         ColorSpace::ABGR => {
-
-    //         },
-
-    //         ColorSpace::YCbCr => {
-
-    //         },
-    //         _ => {
-    //             println!("Unsupport...");
-    //         }
-    //     }
-    // }
     pub fn data(&self) -> Vec<u8> {
         // Image Pixels Data
         unsafe {
@@ -216,16 +184,6 @@ impl ImageAlphaInfo {
 }
 
 pub type CGImageAlphaInfo = u32;
-
-// Any Documents ?
-// pub const kCGImageAlphaNone: CGImageAlphaInfo               = 0;
-// pub const kCGImageAlphaPremultipliedLast: CGImageAlphaInfo  = 1;
-// pub const kCGImageAlphaPremultipliedFirst: CGImageAlphaInfo = 2;
-// pub const kCGImageAlphaLast: CGImageAlphaInfo               = 3;
-// pub const kCGImageAlphaFirst: CGImageAlphaInfo              = 4;
-// pub const kCGImageAlphaNoneSkipLast: CGImageAlphaInfo       = 5;
-// pub const kCGImageAlphaNoneSkipFirst: CGImageAlphaInfo      = 6;
-// pub const kCGImageAlphaOnly: CGImageAlphaInfo               = 7;
 
 #[link(name = "ApplicationServices", kind = "framework")]
 extern {

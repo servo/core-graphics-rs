@@ -14,7 +14,7 @@ extern crate core_foundation;
 pub use libc;
 pub use base::{CGError, boolean_t};
 pub use geometry::{CGRect, CGPoint, CGSize};
-use image::{ CGImageRef };
+use image::CGImageRef;
 
 pub type CGDirectDisplayID = libc::uint32_t;
 pub type CGWindowID        = libc::uint32_t;
