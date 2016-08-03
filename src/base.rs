@@ -29,6 +29,7 @@ pub type CGError = libc::int32_t;
 
 pub type CGAffineTransform = ();
 
+// Move to Image.rs File ??
 pub const kCGImageAlphaNone: u32 = 0;
 pub const kCGImageAlphaPremultipliedLast: u32 = 1;
 pub const kCGImageAlphaPremultipliedFirst: u32 = 2;

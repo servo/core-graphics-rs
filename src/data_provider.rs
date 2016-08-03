@@ -8,6 +8,7 @@
 // except according to those terms.
 
 use core_foundation::base::{CFRelease, CFRetain, CFTypeID, CFTypeRef, TCFType};
+use core_foundation::data:: { CFDataRef, CFDataGetBytePtr, CFDataGetLength };
 
 use libc::{c_void, size_t};
 use std::mem;
@@ -90,18 +91,18 @@ impl CGDataProvider {
 
 #[link(name = "ApplicationServices", kind = "framework")]
 extern {
-    //fn CGDataProviderCopyData
+    pub fn CGDataProviderCopyData(provider: CGDataProviderRef) -> CFDataRef;
     //fn CGDataProviderCreateDirect
     //fn CGDataProviderCreateSequential
     //fn CGDataProviderCreateWithCFData
-    fn CGDataProviderCreateWithData(info: *mut c_void,
+    pub fn CGDataProviderCreateWithData(info: *mut c_void,
                                     data: *const c_void,
                                     size: size_t,
                                     releaseData: CGDataProviderReleaseDataCallback
                                    ) -> CGDataProviderRef;
     //fn CGDataProviderCreateWithFilename(filename: *c_char) -> CGDataProviderRef;
     //fn CGDataProviderCreateWithURL
-    fn CGDataProviderGetTypeID() -> CFTypeID;
+    pub fn CGDataProviderGetTypeID() -> CFTypeID;
     //fn CGDataProviderRelease(provider: CGDataProviderRef);
     //fn CGDataProviderRetain(provider: CGDataProviderRef) -> CGDataProviderRef;
 }

@@ -8,9 +8,28 @@
 // except according to those terms.
 
 use core_foundation::base::{CFRelease, CFRetain, CFTypeID, CFTypeRef, TCFType};
+use core_foundation::string::{CFStringRef, CFString};
 use libc::{c_void, size_t};
 use std::mem;
 use std::ptr;
+use std::string::ToString;
+use std::str::FromStr;
+
+// Document: https://developer.apple.com/library/mac/documentation/GraphicsImaging/Reference/CGColorSpace/index.html
+//           #//apple_ref/doc/constant_group/Color_Space_Names
+#[derive(Debug, Clone)]
+pub enum ColorSpace {
+    RGB,
+    RGBA,
+    ARGB,
+
+    BGR,
+    BGRA,
+    ABGR,
+
+    YCbCr,
+    // TODO: CMYK, Gray, SRGB, XYZ, ...
+}
 
 #[repr(C)]
 struct __CGColorSpace;
@@ -18,7 +37,7 @@ struct __CGColorSpace;
 pub type CGColorSpaceRef = *const __CGColorSpace;
 
 pub struct CGColorSpace {
-    obj: CGColorSpaceRef,
+    pub obj: CGColorSpaceRef,
 }
 
 impl Drop for CGColorSpace {
@@ -80,9 +99,52 @@ impl CGColorSpace {
     }
 }
 
+impl ToString for CGColorSpace {
+    fn to_string(&self) -> String {
+        unsafe {
+            CFString(CGColorSpaceCopyName(self.obj)).to_string()
+        }
+    }
+}
+impl FromStr for CGColorSpace {
+    type Err = &'static str;
+    fn from_str(s: &str) -> Result<CGColorSpace, &'static str> {
+        unsafe {
+            match s {
+                "kCGColorSpaceGenericGray"
+                | "kCGColorSpaceGenericRGB"
+                | "kCGColorSpaceGenericCMYK"
+                | "kCGColorSpaceGenericRGBLinear"
+                | "kCGColorSpaceAdobeRGB1998"
+                | "kCGColorSpaceSRGB"
+                | "kCGColorSpaceGenericGrayGamma2_2"
+                | "kCGColorSpaceGenericXYZ"
+                | "kCGColorSpaceACESCGLinear"
+                | "kCGColorSpaceITUR_709"
+                | "kCGColorSpaceITUR_2020"
+                | "kCGColorSpaceROMMRGB"
+                | "kCGColorSpaceDCIP3"
+                | "kCGColorSpaceDisplayP3" => {
+                    Ok(CGColorSpace{
+                        obj: CGColorSpaceCreateWithName(CFString::new(s).0)
+                    })
+                },
+                _    => {
+                    Err("error...")
+                }
+            }
+        }
+    }
+}
+
 #[link(name = "ApplicationServices", kind = "framework")]
 extern {
-    fn CGColorSpaceCreateDeviceRGB() -> CGColorSpaceRef;
-    fn CGColorSpaceGetTypeID() -> CFTypeID;
+    pub fn CGColorSpaceCreateDeviceCMYK() -> CGColorSpaceRef;
+    pub fn CGColorSpaceCreateDeviceGray() -> CGColorSpaceRef;
+    pub fn CGColorSpaceCreateDeviceRGB()  -> CGColorSpaceRef;
+    pub fn CGColorSpaceCreateWithPlatformColorSpace(_ref: *const c_void) -> CGColorSpaceRef;
+    pub fn CGColorSpaceCreateWithName(name: CFStringRef) -> CGColorSpaceRef;
+    pub fn CGColorSpaceCopyName(space: CGColorSpaceRef)  -> CFStringRef;
+    pub fn CGColorSpaceGetTypeID() -> CFTypeID;
 }
 
