@@ -4,7 +4,6 @@ use std::ops::Deref;
 use std::string::ToString;
 use std::str::FromStr;
 use libc::{ c_void, size_t };
-
 use core_foundation::base::{ CFRelease };
 use core_foundation::data::{ CFDataRef, CFDataGetBytePtr, CFDataGetLength };
 
@@ -114,18 +113,45 @@ impl CGImage {
             ImageAlphaInfo::from_u32(CGImageGetAlphaInfo(self.0))
         }
     }
-    pub fn data(&self) -> Vec<u8> {
-        // Image Pixels Data
+    pub fn raw_len(&self) -> usize {
+        self.width() * self.height() * self.pixel_width()
+    }
+    pub fn data(&self) -> &[u8] {
+        // Image Pixels Data (BGRA)
         unsafe {
             let cf_data = CGDataProviderCopyData(CGImageGetDataProvider(self.0));
             let raw_len = CFDataGetLength(cf_data) as usize;
             // Image size is inconsistent with W*H*D.
             assert_eq!(self.width()*self.height()*self.pixel_bits(), raw_len*8 );
+            assert_eq!(self.raw_len(), raw_len );
 
             let data = slice::from_raw_parts(CFDataGetBytePtr(cf_data), raw_len);
             CFRelease(cf_data as *const c_void);
+            // WARN: Slow.
+            // let v = data.to_vec();
+            data
+        }
+    }
+    pub fn raw_data(&self) -> *const u8 {
+        unsafe {
+            let cf_data = CGDataProviderCopyData(CGImageGetDataProvider(self.0));
+            let raw_len = CFDataGetLength(cf_data) as usize;
+            // Image size is inconsistent with W*H*D.
+            assert_eq!(self.width()*self.height()*self.pixel_bits(), raw_len*8 );
+            assert_eq!(self.raw_len(), raw_len );
 
-            data.to_vec()
+            CFDataGetBytePtr(cf_data)
+        }
+    }
+    pub fn raw_mut_data(&self) -> *mut u8 {
+        unsafe {
+            let cf_data = CGDataProviderCopyData(CGImageGetDataProvider(self.0));
+            let raw_len = CFDataGetLength(cf_data) as usize;
+
+            assert_eq!(self.width()*self.height()*self.pixel_bits(), raw_len*8 );
+            assert_eq!(self.raw_len(), raw_len );
+
+            CFDataGetBytePtr(cf_data) as *mut u8
         }
     }
 }
