@@ -7,9 +7,9 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-extern crate libc;
-extern crate core_foundation;
-extern crate serde;
+#![link(name = "ApplicationServices", kind = "framework")]
+
+extern crate core_foundation_sys;
 
 pub mod base;
 pub mod color_space;
@@ -18,5 +18,3 @@ pub mod data_provider;
 pub mod display;
 pub mod font;
 pub mod geometry;
-pub mod private;
-

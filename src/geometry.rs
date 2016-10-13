@@ -9,13 +9,8 @@
 
 use base::CGFloat;
 
-pub const CG_ZERO_POINT: CGPoint = CGPoint {
-    x: 0.0,
-    y: 0.0,
-};
-
+#[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd)]
 #[repr(C)]
-#[derive(Clone, Copy, Debug)]
 pub struct CGSize {
     pub width: CGFloat,
     pub height: CGFloat,
@@ -31,8 +26,8 @@ impl CGSize {
     }
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd)]
 #[repr(C)]
-#[derive(Clone, Copy, Debug)]
 pub struct CGPoint {
     pub x: CGFloat,
     pub y: CGFloat,
@@ -48,8 +43,8 @@ impl CGPoint {
     }
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd)]
 #[repr(C)]
-#[derive(Clone, Copy, Debug)]
 pub struct CGRect {
     pub origin: CGPoint,
     pub size: CGSize
@@ -57,28 +52,21 @@ pub struct CGRect {
 
 impl CGRect {
     #[inline]
-    pub fn new(origin: &CGPoint, size: &CGSize) -> CGRect {
+    pub fn new(origin: CGPoint, size: CGSize) -> CGRect {
         CGRect {
-            origin: *origin,
-            size: *size,
+            origin: origin,
+            size: size,
         }
     }
 
     #[inline]
-    pub fn inset(&self, size: &CGSize) -> CGRect {
+    pub fn inset(self, size: CGSize) -> CGRect {
         unsafe {
-            ffi::CGRectInset(*self, size.width, size.height)
+            CGRectInset(self, size.width, size.height)
         }
     }
 }
 
-mod ffi {
-    use base::CGFloat;
-    use geometry::CGRect;
-
-    #[link(name = "ApplicationServices", kind = "framework")]
-    extern {
-        pub fn CGRectInset(rect: CGRect, dx: CGFloat, dy: CGFloat) -> CGRect;
-    }
+extern {
+    pub fn CGRectInset(rect: CGRect, dx: CGFloat, dy: CGFloat) -> CGRect;
 }
-
