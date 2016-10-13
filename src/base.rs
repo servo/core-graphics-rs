@@ -12,23 +12,21 @@
 #![allow(non_camel_case_types)]
 #![allow(non_upper_case_globals)]
 
-use libc;
+use std::os::raw;
+
+#[cfg(target_pointer_width = "64")]
+pub type CGFloat = f64;
+#[cfg(not(target_pointer_width = "64"))]
+pub type CGFloat = f32;
 
 #[cfg(any(target_arch = "x86",
           target_arch = "arm",
           target_arch = "aarch64"))]
-pub type boolean_t = libc::c_int;
+pub type boolean_t = raw::c_int;
 #[cfg(target_arch = "x86_64")]
-pub type boolean_t = libc::c_uint;
+pub type boolean_t = raw::c_uint;
 
-#[cfg(target_pointer_width = "64")]
-pub type CGFloat = libc::c_double;
-#[cfg(not(target_pointer_width = "64"))]
-pub type CGFloat = libc::c_float;
-
-pub type CGError = libc::int32_t;
-
-pub type CGAffineTransform = ();
+pub type CGError = i32;
 
 pub const kCGImageAlphaNone: u32 = 0;
 pub const kCGImageAlphaPremultipliedLast: u32 = 1;
@@ -37,4 +35,3 @@ pub const kCGImageAlphaLast: u32 = 3;
 pub const kCGImageAlphaFirst: u32 = 4;
 pub const kCGImageAlphaNoneSkipLast: u32 = 5;
 pub const kCGImageAlphaNoneSkipFirst: u32 = 6;
-

@@ -7,101 +7,44 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use core_foundation::base::{CFRelease, CFRetain, CFTypeID, CFTypeRef, TCFType};
+use core_foundation_sys::base::{CFDowncast, CFObject, CFType, CFTypeID};
+use core_foundation_sys::data::{CFData};
+use core_foundation_sys::sync::{CFRef, CFShared};
 
-use libc::{c_void, size_t};
-use std::mem;
-use std::ptr;
-
-pub type CGDataProviderGetBytesCallback = *const u8;
-pub type CGDataProviderReleaseInfoCallback = *const u8;
-pub type CGDataProviderRewindCallback = *const u8;
-pub type CGDataProviderSkipBytesCallback = *const u8;
-pub type CGDataProviderSkipForwardCallback = *const u8;
-
-pub type CGDataProviderGetBytePointerCallback = *const u8;
-pub type CGDataProviderGetBytesAtOffsetCallback = *const u8;
-pub type CGDataProviderReleaseBytePointerCallback = *const u8;
-pub type CGDataProviderReleaseDataCallback = *const u8;
-pub type CGDataProviderGetBytesAtPositionCallback = *const u8;
+pub type CGDataProviderRef = CFRef<CGDataProvider>;
 
 #[repr(C)]
-pub struct __CGDataProvider;
+pub struct CGDataProvider { obj: CFObject }
 
-pub type CGDataProviderRef = *const __CGDataProvider;
+unsafe impl Send for CGDataProvider {}
+unsafe impl Sync for CGDataProvider {}
 
-pub struct CGDataProvider {
-    obj: CGDataProviderRef,
-}
-
-impl Drop for CGDataProvider {
-    fn drop(&mut self) {
-        unsafe {
-            CFRelease(self.as_CFTypeRef())
-        }
+unsafe impl CFType for CGDataProvider {
+    #[inline]
+    fn as_object(&self) -> &CFObject {
+        &self.obj
     }
 }
 
-impl TCFType<CGDataProviderRef> for CGDataProvider {
-    #[inline]
-    fn as_concrete_TypeRef(&self) -> CGDataProviderRef {
-        self.obj
-    }
-
-    #[inline]
-    unsafe fn wrap_under_get_rule(reference: CGDataProviderRef) -> CGDataProvider {
-        let reference: CGDataProviderRef = mem::transmute(CFRetain(mem::transmute(reference)));
-        TCFType::wrap_under_create_rule(reference)
-    }
-
-    #[inline]
-    fn as_CFTypeRef(&self) -> CFTypeRef {
-        unsafe {
-            mem::transmute(self.as_concrete_TypeRef())
-        }
-    }
-
-    #[inline]
-    unsafe fn wrap_under_create_rule(obj: CGDataProviderRef) -> CGDataProvider {
-        CGDataProvider {
-            obj: obj,
-        }
-    }
-
+unsafe impl CFDowncast for CGDataProvider {
     #[inline]
     fn type_id() -> CFTypeID {
-        unsafe {
-            CGDataProviderGetTypeID()
-        }
+        unsafe { CGDataProviderGetTypeID() }
     }
 }
 
 impl CGDataProvider {
-    pub fn from_buffer(buffer: &[u8]) -> CGDataProvider {
+    pub fn from_data(data: &CFShared<CFData>) -> CGDataProviderRef {
         unsafe {
-            let result = CGDataProviderCreateWithData(ptr::null_mut(),
-                                                      buffer.as_ptr() as *const c_void,
-                                                      buffer.len() as size_t,
-                                                      ptr::null());
-            TCFType::wrap_under_create_rule(result)
+            CFRef::from_retained(CGDataProviderCreateWithCFData(data))
         }
     }
 }
 
-#[link(name = "ApplicationServices", kind = "framework")]
 extern {
-    //fn CGDataProviderCopyData
-    //fn CGDataProviderCreateDirect
-    //fn CGDataProviderCreateSequential
-    //fn CGDataProviderCreateWithCFData
-    fn CGDataProviderCreateWithData(info: *mut c_void,
-                                    data: *const c_void,
-                                    size: size_t,
-                                    releaseData: CGDataProviderReleaseDataCallback
-                                   ) -> CGDataProviderRef;
-    //fn CGDataProviderCreateWithFilename(filename: *c_char) -> CGDataProviderRef;
-    //fn CGDataProviderCreateWithURL
-    fn CGDataProviderGetTypeID() -> CFTypeID;
-    //fn CGDataProviderRelease(provider: CGDataProviderRef);
-    //fn CGDataProviderRetain(provider: CGDataProviderRef) -> CGDataProviderRef;
+    pub fn CGDataProviderGetTypeID() -> CFTypeID;
+
+    pub fn CGDataProviderCreateWithCFData(
+            data: &CFShared<CFData>)
+            -> *const CFShared<CGDataProvider>;
 }

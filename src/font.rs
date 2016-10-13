@@ -7,141 +7,58 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use core_foundation::base::{CFRelease, CFRetain, CFTypeID, CFTypeRef, TCFType};
-use core_foundation::string::{CFString, CFStringRef};
-use data_provider::{CGDataProvider, CGDataProviderRef};
+use core_foundation_sys::base::{CFDowncast, CFObject, CFType, CFTypeID};
+use core_foundation_sys::string::{CFString, CFStringRef};
+use core_foundation_sys::sync::{CFRef, CFShared};
+use data_provider::CGDataProvider;
 
-use libc;
-use serde::de::{self, Deserialize, Deserializer};
-use serde::ser::{Serialize, Serializer};
-use std::mem;
-use std::ptr;
-
-pub type CGGlyph = libc::c_ushort;
+pub type CGFontRef = CFRef<CGFont>;
 
 #[repr(C)]
-pub struct __CGFont;
-
-pub type CGFontRef = *const __CGFont;
-
-pub struct CGFont {
-    obj: CGFontRef,
-}
+pub struct CGFont { obj: CFObject }
 
 unsafe impl Send for CGFont {}
 unsafe impl Sync for CGFont {}
 
-impl Serialize for CGFont {
-    fn serialize<S>(&self, serializer: &mut S) -> Result<(), S::Error> where S: Serializer {
-        let postscript_name = self.postscript_name().to_string();
-        postscript_name.serialize(serializer)
+unsafe impl CFType for CGFont {
+    #[inline]
+    fn as_object(&self) -> &CFObject {
+        &self.obj
     }
 }
 
-impl Deserialize for CGFont {
-    fn deserialize<D>(deserializer: &mut D) -> Result<Self, D::Error> where D: Deserializer {
-        let postscript_name: String = try!(Deserialize::deserialize(deserializer));
-        CGFont::from_name(&CFString::new(&*postscript_name)).map_err(|_| {
-            de::Error::invalid_value("Couldn't find a font with that PostScript name!")
-        })
-    }
-}
-
-impl Clone for CGFont {
-    #[inline]
-    fn clone(&self) -> CGFont {
-        unsafe {
-            TCFType::wrap_under_get_rule(self.obj)
-        }
-    }
-}
-
-impl Drop for CGFont {
-    fn drop(&mut self) {
-        unsafe {
-            let ptr = self.as_CFTypeRef();
-            assert!(ptr != ptr::null());
-            CFRelease(ptr);
-        }
-    }
-}
-
-impl TCFType<CGFontRef> for CGFont {
-    #[inline]
-    fn as_concrete_TypeRef(&self) -> CGFontRef {
-        self.obj
-    }
-
-    #[inline]
-    unsafe fn wrap_under_get_rule(reference: CGFontRef) -> CGFont {
-        let reference: CGFontRef = mem::transmute(CFRetain(mem::transmute(reference)));
-        TCFType::wrap_under_create_rule(reference)
-    }
-
-    #[inline]
-    fn as_CFTypeRef(&self) -> CFTypeRef {
-        unsafe {
-            mem::transmute(self.as_concrete_TypeRef())
-        }
-    }
-
-    #[inline]
-    unsafe fn wrap_under_create_rule(obj: CGFontRef) -> CGFont {
-        CGFont {
-            obj: obj,
-        }
-    }
-
+unsafe impl CFDowncast for CGFont {
     #[inline]
     fn type_id() -> CFTypeID {
-        unsafe {
-            CGFontGetTypeID()
-        }
+        unsafe { CGFontGetTypeID() }
     }
 }
 
 impl CGFont {
-    pub fn from_data_provider(provider: CGDataProvider) -> Result<CGFont, ()> {
+    pub fn from_provider(provider: &CGDataProvider) -> Result<CGFontRef, ()> {
         unsafe {
-            let font_ref = CGFontCreateWithDataProvider(provider.as_concrete_TypeRef());
-            if font_ref != ptr::null() {
-                Ok(TCFType::wrap_under_create_rule(font_ref))
-            } else {
-                Err(())
-            }
+            CFRef::try_from_retained(CGFontCreateWithDataProvider(provider))
         }
     }
 
-    pub fn from_name(name: &CFString) -> Result<CGFont, ()> {
-        unsafe {
-            let font_ref = CGFontCreateWithFontName(name.as_concrete_TypeRef());
-            if font_ref != ptr::null() {
-                Ok(TCFType::wrap_under_create_rule(font_ref))
-            } else {
-                Err(())
-            }
-        }
+    pub fn from_name(name: &CFString) -> Result<CGFontRef, ()> {
+        unsafe { CFRef::try_from_retained(CGFontCreateWithFontName(name)) }
     }
 
-    pub fn postscript_name(&self) -> CFString {
-        unsafe {
-            let string_ref = CGFontCopyPostScriptName(self.obj);
-            TCFType::wrap_under_create_rule(string_ref)
-        }
+    pub fn postscript_name(&self) -> CFStringRef {
+        unsafe { CFRef::from_retained(CGFontCopyPostScriptName(self)) }
     }
 }
 
-#[link(name = "ApplicationServices", kind = "framework")]
+pub type CGGlyph = u16;
+
 extern {
-    // TODO: basically nothing has bindings (even commented-out) besides what we use.
-    fn CGFontCreateWithDataProvider(provider: CGDataProviderRef) -> CGFontRef;
-    fn CGFontCreateWithFontName(name: CFStringRef) -> CGFontRef;
     fn CGFontGetTypeID() -> CFTypeID;
 
-    fn CGFontCopyPostScriptName(font: CGFontRef) -> CFStringRef;
+    fn CGFontCreateWithDataProvider(
+            provider: &CGDataProvider)
+            -> *const CFShared<CGFont>;
 
-    // These do the same thing as CFRetain/CFRelease, except
-    // gracefully handle a NULL argument. We don't use them.
-    //fn CGFontRetain(font: CGFontRef);
-    //fn CGFontRelease(font: CGFontRef);
+    fn CGFontCreateWithFontName(name: &CFString) -> *const CFShared<CGFont>;
+    fn CGFontCopyPostScriptName(font: &CGFont) -> *const CFShared<CFString>;
 }
