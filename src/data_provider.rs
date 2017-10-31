@@ -12,6 +12,9 @@ use core_foundation::data::{CFData, CFDataRef};
 
 use libc::{c_void, size_t, off_t};
 use std::ptr;
+use std::slice;
+use std::rc::Rc;
+use std::sync::Arc;
 
 use foreign_types::{ForeignType, ForeignTypeRef};
 
@@ -52,6 +55,54 @@ impl CGDataProvider {
             CGDataProvider::from_ptr(result)
         }
     }
+
+    pub fn from_boxed_slice(slice: Box<[u8]>) -> CGDataProvider {
+        unsafe extern fn unbox(_: *mut c_void, ptr: *const c_void, size: size_t) {
+            let slice = slice::from_raw_parts_mut(ptr as *mut u8, size);
+            let output: Box<[u8]> = Box::from_raw(slice);
+            drop(output);
+        }
+        unsafe {
+            let result = CGDataProviderCreateWithData(ptr::null_mut(),
+                                                      slice.as_ptr() as *const c_void,
+                                                      slice.len() as size_t,
+                                                      Some(unbox));
+            TCFType::wrap_under_create_rule(result)
+        }
+    }
+
+    pub fn from_rc_vec(data: Rc<Vec<u8>>) -> CGDataProvider {
+        unsafe extern fn unbox(info: *mut c_void, _: *const c_void, _: size_t) {
+            let output: Rc<Vec<u8>> = mem::transmute(info);
+            drop(output);
+        }
+        unsafe {
+            let ptr = data.as_ptr();
+            let size = data.len();
+            let result = CGDataProviderCreateWithData(mem::transmute(data),
+                                                      ptr as *const c_void,
+                                                      size as size_t,
+                                                      Some(unbox));
+            TCFType::wrap_under_create_rule(result)
+        }
+    }
+
+    pub fn from_arc_vec(data: Arc<Vec<u8>>) -> CGDataProvider {
+        unsafe extern fn unbox(info: *mut c_void, _: *const c_void, _: size_t) {
+            let output: Arc<Vec<u8>> = mem::transmute(info);
+            drop(output);
+        }
+        unsafe {
+            let ptr = data.as_ptr();
+            let size = data.len();
+            let result = CGDataProviderCreateWithData(mem::transmute(data),
+                                                      ptr as *const c_void,
+                                                      size as size_t,
+                                                      Some(unbox));
+            TCFType::wrap_under_create_rule(result)
+        }
+    }
+
 }
 
 impl CGDataProviderRef {
